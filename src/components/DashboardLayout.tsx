@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Package, TrendingUp, Menu, User } from "lucide-react";
+import { Package, TrendingUp, Menu, User, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const navItems = [
     { path: "/", label: "Pedidos Diarios", icon: Package },
     { path: "/agrupacion", label: "Agrupación", icon: TrendingUp },
+    { path: "/capacidad", label: "Capacidad", icon: Calendar },
   ];
 
   return (
