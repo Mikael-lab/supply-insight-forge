@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Calendar, AlertTriangle, TrendingUp, Package, Filter } from "lucide-react";
-import { MetricCard } from "@/components/MetricCard";
+import { Calendar, Package } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -10,53 +9,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { StatusBadge, OrderStatus } from "@/components/StatusBadge";
 import { cn } from "@/lib/utils";
 
 // Mock data basado en la imagen Excel
 const capacityData = [
-  { date: "01-oct", total: 14, capacity: 20, status: "ok" },
-  { date: "02-oct", total: 13, capacity: 20, status: "ok" },
-  { date: "03-oct", total: 18, capacity: 20, status: "warning" },
-  { date: "04-oct", total: 12, capacity: 20, status: "ok" },
-  { date: "06-oct", total: 21, capacity: 20, status: "critical" },
-  { date: "07-oct", total: 22, capacity: 20, status: "critical" },
-  { date: "08-oct", total: 13, capacity: 20, status: "ok" },
-  { date: "09-oct", total: 23, capacity: 20, status: "critical" },
-  { date: "10-oct", total: 42, capacity: 20, status: "critical" },
-  { date: "11-oct", total: 32, capacity: 20, status: "critical" },
-  { date: "12-oct", total: 3, capacity: 20, status: "ok" },
-  { date: "13-oct", total: 56, capacity: 20, status: "critical" },
-  { date: "14-oct", total: 24, capacity: 20, status: "critical" },
-  { date: "15-oct", total: 22, capacity: 20, status: "critical" },
-  { date: "16-oct", total: 11, capacity: 20, status: "ok" },
-  { date: "17-oct", total: 17, capacity: 20, status: "warning" },
-  { date: "18-oct", total: 6, capacity: 20, status: "ok" },
-  { date: "19-oct", total: 1, capacity: 20, status: "ok" },
-  { date: "20-oct", total: 24, capacity: 20, status: "critical" },
+  { date: "01-oct", total: 14, capacity: 120, status: "ok" },
+  { date: "02-oct", total: 13, capacity: 120, status: "ok" },
+  { date: "03-oct", total: 118, capacity: 120, status: "warning" },
+  { date: "04-oct", total: 12, capacity: 120, status: "ok" },
+  { date: "06-oct", total: 121, capacity: 120, status: "critical" },
+  { date: "07-oct", total: 122, capacity: 120, status: "critical" },
+  { date: "08-oct", total: 13, capacity: 120, status: "ok" },
+  { date: "09-oct", total: 123, capacity: 120, status: "critical" },
+  { date: "10-oct", total: 142, capacity: 120, status: "critical" },
+  { date: "11-oct", total: 132, capacity: 120, status: "critical" },
+  { date: "12-oct", total: 3, capacity: 120, status: "ok" },
+  { date: "13-oct", total: 156, capacity: 120, status: "critical" },
+  { date: "14-oct", total: 124, capacity: 120, status: "critical" },
+  { date: "15-oct", total: 122, capacity: 120, status: "critical" },
+  { date: "16-oct", total: 11, capacity: 120, status: "ok" },
+  { date: "17-oct", total: 117, capacity: 120, status: "warning" },
+  { date: "18-oct", total: 6, capacity: 120, status: "ok" },
+  { date: "19-oct", total: 1, capacity: 120, status: "ok" },
+  { date: "20-oct", total: 124, capacity: 120, status: "critical" },
 ];
 
-const orderStatusData = [
-  { status: "Hold Cliente", count: 5, color: "destructive" },
-  { status: "Sin Producto SP", count: 8, color: "warning" },
-  { status: "Sin Producto ST/K", count: 3, color: "warning" },
-  { status: "Cliente no contesta", count: 12, color: "warning" },
-  { status: "Cliente Solicita Entrega Parcial", count: 4, color: "info" },
-  { status: "Pago Parcial", count: 6, color: "destructive" },
-  { status: "Pedido Incompleto", count: 7, color: "warning" },
-  { status: "Material no ubicado físico", count: 3, color: "destructive" },
-  { status: "Lo quiere completo", count: 14, color: "info" },
-];
+// Mock data para pedidos del día seleccionado
+const mockDayOrders = {
+  programados: [
+    { id: "70023456", delivery: "81800123", cliente: "CONSTRUMART SA", promiseDate: "2025-10-13", status: "surtido" as OrderStatus },
+    { id: "70023457", delivery: "81800124", cliente: "MATERIALES DEL NORTE", promiseDate: "2025-10-13", status: "auditado" as OrderStatus },
+    { id: "70023458", delivery: "81800125", cliente: "FERRETERIA GUADALUPE", promiseDate: "2025-10-13", status: "embarcado" as OrderStatus },
+  ],
+  nuevos: [
+    { id: "70026044", delivery: "81799563", cliente: "GRUPO CONSTRUCTOR ABC", promiseDate: "2025-10-13", status: "pendiente" as OrderStatus },
+    { id: "70026045", delivery: "81799564", cliente: "MATERIALES INDUSTRIALES", promiseDate: "2025-10-13", status: "pendiente" as OrderStatus },
+    { id: "70026046", delivery: "81799565", cliente: "CONSTRUMART SA", promiseDate: "2025-10-13", status: "pendiente" as OrderStatus },
+  ]
+};
 
 export default function CapacityPlanning() {
   const [selectedCenter, setSelectedCenter] = useState("todos");
   const [selectedRoute, setSelectedRoute] = useState("todas");
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [showDayOrders, setShowDayOrders] = useState(false);
 
-  const criticalDays = capacityData.filter((d) => d.status === "critical").length;
-  const avgLoad = Math.round(
-    capacityData.reduce((sum, d) => sum + (d.total / d.capacity) * 100, 0) / capacityData.length
-  );
-  const maxDay = capacityData.reduce((max, d) => (d.total > max.total ? d : max));
+  const configuredCapacity = capacityData[0]?.capacity || 120;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,17 +85,9 @@ export default function CapacityPlanning() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "destructive":
-        return "destructive";
-      case "warning":
-        return "outline";
-      case "info":
-        return "secondary";
-      default:
-        return "default";
-    }
+  const handleDayClick = (date: string) => {
+    setSelectedDay(date);
+    setShowDayOrders(true);
   };
 
   return (
@@ -120,33 +126,23 @@ export default function CapacityPlanning() {
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Días Críticos"
-          value={criticalDays}
-          icon={<AlertTriangle className="h-4 w-4" />}
-          variant="destructive"
-        />
-        <MetricCard
-          title="Carga Promedio"
-          value={`${avgLoad}%`}
-          icon={<TrendingUp className="h-4 w-4" />}
-          variant={avgLoad > 100 ? "warning" : "success"}
-        />
-        <MetricCard
-          title="Día Pico"
-          value={maxDay.date}
-          icon={<Calendar className="h-4 w-4" />}
-          variant="info"
-        />
-        <MetricCard
-          title="Total Pedidos"
-          value={capacityData.reduce((sum, d) => sum + d.total, 0)}
-          icon={<Package className="h-4 w-4" />}
-          variant="default"
-        />
-      </div>
+      {/* Configured Capacity */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Package className="h-8 w-8 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Capacidad Configurada</p>
+                <p className="text-3xl font-bold text-primary">{configuredCapacity}</p>
+              </div>
+            </div>
+            <Badge variant="outline" className="text-lg px-4 py-2">
+              Pedidos por día
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Capacity Heatmap */}
       <Card>
@@ -179,8 +175,9 @@ export default function CapacityPlanning() {
                 return (
                   <div
                     key={day.date}
+                    onClick={() => handleDayClick(day.date)}
                     className={cn(
-                      "group relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer",
+                      "group relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer hover:scale-105",
                       getStatusColor(day.status)
                     )}
                   >
@@ -188,7 +185,7 @@ export default function CapacityPlanning() {
                       {day.date}
                     </div>
                     <div className="text-lg font-bold text-foreground">
-                      {day.total}
+                      {day.total}/{day.capacity}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {percentage}%
@@ -201,6 +198,7 @@ export default function CapacityPlanning() {
                         <div>Pedidos: {day.total}</div>
                         <div>Capacidad: {day.capacity}</div>
                         <div>Carga: {percentage}%</div>
+                        <div className="text-primary font-medium mt-1">Click para ver detalle</div>
                       </div>
                     </div>
                   </div>
@@ -211,81 +209,102 @@ export default function CapacityPlanning() {
         </CardContent>
       </Card>
 
-      {/* Status Breakdown */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Estados de Pedidos Pendientes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {orderStatusData.map((item) => (
-                <div
-                  key={item.status}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Badge variant={getStatusBadge(item.color)}>
-                      {item.count}
-                    </Badge>
-                    <span className="text-sm font-medium">{item.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Day Orders Dialog */}
+      <Dialog open={showDayOrders} onOpenChange={setShowDayOrders}>
+        <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Calendar className="h-6 w-6 text-primary" />
+              Pedidos del día {selectedDay}
+            </DialogTitle>
+            <DialogDescription>
+              Detalle de pedidos programados y nuevos para esta fecha
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Recommendations */}
-        <Card className="border-primary/30 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-primary">
-              <TrendingUp className="h-5 w-5" />
-              Recomendaciones Inteligentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex gap-3">
-                <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-sm">Día 13-oct saturado</p>
-                  <p className="text-sm text-muted-foreground">
-                    56 pedidos (280% capacidad). Considere adelantar 15 entregas al 12-oct.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <TrendingUp className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-sm">Optimización detectada</p>
-                  <p className="text-sm text-muted-foreground">
-                    Días 16-oct y 18-oct tienen baja carga. Pueden absorber pedidos reprogramados.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Package className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-sm">14 pedidos "Hold Cliente"</p>
-                  <p className="text-sm text-muted-foreground">
-                    Libere capacidad resolviendo estos casos prioritarios.
-                  </p>
-                </div>
+          <div className="space-y-6">
+            {/* Pedidos Programados */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Badge variant="default">{mockDayOrders.programados.length}</Badge>
+                Pedidos Programados
+              </h3>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead>Entrega</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>F. Promesa</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockDayOrders.programados.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell>{order.delivery}</TableCell>
+                        <TableCell>{order.cliente}</TableCell>
+                        <TableCell>{order.promiseDate}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={order.status} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </div>
 
-            <Button className="w-full mt-4">
-              Aplicar Sugerencias de Optimización
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Pedidos Nuevos */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Badge variant="secondary">{mockDayOrders.nuevos.length}</Badge>
+                Pedidos Nuevos
+              </h3>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead>Entrega</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>F. Promesa</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {mockDayOrders.nuevos.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell>{order.delivery}</TableCell>
+                        <TableCell>{order.cliente}</TableCell>
+                        <TableCell>{order.promiseDate}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={order.status} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <span className="text-sm font-medium">Total Programados:</span>
+                <span className="text-lg font-bold text-primary ml-2">{mockDayOrders.programados.length}</span>
+              </div>
+              <div className="p-4 bg-secondary/10 rounded-lg border border-secondary/20">
+                <span className="text-sm font-medium">Total Nuevos:</span>
+                <span className="text-lg font-bold ml-2">{mockDayOrders.nuevos.length}</span>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
